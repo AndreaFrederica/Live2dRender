@@ -64,7 +64,13 @@ export class LAppDelegate {
         canvas.id = LAppDefine.CanvasId;
         canvas.style.position = 'fixed';
         canvas.style.bottom = '0';
-        canvas.style.right = '0';
+        
+        if (LAppDefine.CanvasPosition === 'left') {
+            canvas.style.left = '0';
+        } else {
+            canvas.style.right = '0';
+        }
+        
         canvas.style.zIndex = '9999';
         LAppDefine.Canvas = canvas;
         

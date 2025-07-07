@@ -21,6 +21,9 @@ interface ILAppDefine {
     LoadFromCache: boolean
     Live2dDB: IDBDatabase | undefined
 
+    // 位置设置
+    CanvasPosition: 'left' | 'right'
+
     // 画面参数
     ViewScale: number
     ViewMaxScale: number
@@ -83,6 +86,7 @@ const LAppDefine: ILAppDefine = {
     CanvasSize: 'auto',
     LoadFromCache: false,
     Live2dDB: undefined,
+    CanvasPosition: 'right',
 
     ViewScale: 1.0,
     ViewMaxScale: 2.0,

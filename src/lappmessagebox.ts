@@ -32,7 +32,13 @@ export class LAppMessageBox {
         
         messageBox.style.width = canvas.width + 'px';
         messageBox.style.height = '20px';
-        messageBox.style.right = '0';
+        
+        if (LAppDefine.CanvasPosition === 'left') {
+            messageBox.style.left = '0';
+        } else {
+            messageBox.style.right = '0';
+        }
+        
         messageBox.style.bottom = canvas.height + 50 + 'px';
         messageBox.innerHTML = '<div id="live2dMessageBox-content"></div>';
         document.body.appendChild(messageBox);

@@ -126,7 +126,9 @@ function createCommonIcon(svgString: string, extraString: string = '', cssClasse
  * @returns
  */
 function makeLive2dCollapseIcon(container: HTMLDivElement): HTMLDivElement {
-    const icon = createCommonIcon(svgIcon.collapseIcon, '', ['button-item']);
+    // 根据位置选择不同的 icon
+    const iconSvg = LAppDefine.CanvasPosition === 'left' ? svgIcon.collapseIconLeft : svgIcon.collapseIconRight;
+    const icon = createCommonIcon(iconSvg, '', ['button-item']);
     icon.style.backgroundColor = _defaultIconBgColor;
     icon.style.fontSize = '1.05rem';
 
@@ -145,9 +147,15 @@ function makeLive2dCollapseIcon(container: HTMLDivElement): HTMLDivElement {
         if (canvas) {
             const canvasWidth = Math.ceil(canvas.width);
             xoffset = (xoffset + canvasWidth) % (canvasWidth << 1);
-            canvas.style.transform = `translateX(${xoffset}px)`;
-
-            container.style.transform = `translateX(${Math.max(0, xoffset - widthXoffset)}px)`;
+            
+            // 根据位置参数调整移动方向
+            if (LAppDefine.CanvasPosition === 'left') {
+                canvas.style.transform = `translateX(-${xoffset}px)`;
+                container.style.transform = `translateX(-${Math.max(0, xoffset - widthXoffset)}px)`;
+            } else {
+                canvas.style.transform = `translateX(${xoffset}px)`;
+                container.style.transform = `translateX(${Math.max(0, xoffset - widthXoffset)}px)`;
+            }
             
             if (xoffset > 0) {
                 // 收起
@@ -188,7 +196,8 @@ function makeExpressionListCollapseIcon(container: HTMLDivElement): HTMLDivEleme
     iconsWrapper.style.opacity = '0';
 
     let currentTranslateY = 0;
-    iconsWrapper.style.transform = `translate(-75px, ${currentTranslateY - 50}px)`;
+    const translateX = LAppDefine.CanvasPosition === 'left' ? '75px' : '-75px';
+    iconsWrapper.style.transform = `translate(${translateX}, ${currentTranslateY - 50}px)`;
 
     // 注册 icon 的鼠标事件
     icon.addEventListener('mouseenter', () => {
@@ -197,7 +206,7 @@ function makeExpressionListCollapseIcon(container: HTMLDivElement): HTMLDivEleme
         // 光标进入
         iconsWrapper.style.visibility = 'visible';
         iconsWrapper.style.opacity = '1';
-        iconsWrapper.style.transform = `translate(-75px, ${currentTranslateY}px)`;
+        iconsWrapper.style.transform = `translate(${translateX}, ${currentTranslateY}px)`;
     });
 
     icon.addEventListener('mouseleave', () => {
@@ -205,7 +214,7 @@ function makeExpressionListCollapseIcon(container: HTMLDivElement): HTMLDivEleme
         
         // 光标退出
         iconsWrapper.style.opacity = '0';
-        iconsWrapper.style.transform = `translate(-75px, ${currentTranslateY - 50}px)`;
+        iconsWrapper.style.transform = `translate(${translateX}, ${currentTranslateY - 50}px)`;
 
         setTimeout(() => {
             iconsWrapper.style.visibility = 'hidden';
@@ -231,7 +240,8 @@ function makeExpressionListCollapseIcon(container: HTMLDivElement): HTMLDivEleme
         currentTranslateY = translateY;
     
         // 更新transform属性
-        iconsWrapper.style.transform = `translate(-75px, ${translateY}px)`;
+        const translateX = LAppDefine.CanvasPosition === 'left' ? '75px' : '-75px';
+        iconsWrapper.style.transform = `translate(${translateX}, ${translateY}px)`;
     
         e.preventDefault(); // 阻止默认的滚动行为
     });
@@ -352,7 +362,14 @@ function makeBoxItemContainer() {
     container.style.transition = '.7s cubic-bezier(0.23, 1, 0.32, 1)';
 
     container.style.position = 'fixed';
-    container.style.right = canvas.width - widthXoffset + 'px';
+    
+    // 根据位置参数设置工具箱位置
+    if (LAppDefine.CanvasPosition === 'left') {
+        container.style.left = canvas.width - widthXoffset + 'px';
+    } else {
+        container.style.right = canvas.width - widthXoffset + 'px';
+    }
+    
     container.style.top = window.innerHeight - canvas.height + 'px';
 
     // 增加几个常用工具

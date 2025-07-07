@@ -89,6 +89,9 @@ onMounted(async () => {
             width: 400
         },
         
+        // live2d 的位置 ('left' | 'right')
+        CanvasPosition: 'left',
+        
         // 展示工具箱（可以控制 live2d 的展出隐藏，使用特定表情）
         ShowToolBox: true,
 

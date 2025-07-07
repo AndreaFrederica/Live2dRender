@@ -15,6 +15,7 @@ import { addToolBox } from './toolbox';
 interface Live2dRenderConfig {
     CanvasId?: string
     CanvasSize?: { height: number, width: number } | 'auto'
+    CanvasPosition?: 'left' | 'right'
     BackgroundRGBA?: [number, number, number, number]
     ResourcesPath?: string
     LoadFromCache?: boolean
@@ -124,8 +125,12 @@ async function initializeLive2D(config: Live2dRenderConfig) {
     if (config.ShowToolBox === undefined) {
         config.ShowToolBox = false;
     }
+    if (config.CanvasPosition === undefined) {
+        config.CanvasPosition = 'right';
+    }
 
     LAppDefine.ShowToolBox = config.ShowToolBox;
+    LAppDefine.CanvasPosition = config.CanvasPosition;
 
     await loadLibs([
         config.MinifiedJSUrl,
