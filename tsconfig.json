@@ -11,7 +11,7 @@
         "baseUrl": "./",
         "paths": {
             "@framework/*": [
-                "../../../Framework/src/*"
+                "../Live2D/CubismSdkForWeb/Framework/src/*"
             ]
         },
         "noImplicitAny": true,
@@ -20,7 +20,7 @@
     },
     "include": [
         "src/**/*.ts",
-        "../../../Core/*.ts"
+        "../Live2D/CubismSdkForWeb/Core/*.ts"
     ],
     "exclude": [
         "node_modules",

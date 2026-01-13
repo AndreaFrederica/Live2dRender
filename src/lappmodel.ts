@@ -116,9 +116,11 @@ export class LAppModel extends CubismUserModel {
         if (this._modelSetting.getModelFileName() != '') {
             const modelFileName = this._modelSetting.getModelFileName();
 
+            console.log('[1/5] 📦 Loading MOC3 model:', modelFileName);
             cacheFetch(`${this._modelHomeDir}${modelFileName}`)
                 .then(response => response.arrayBuffer())
                 .then(arrayBuffer => {
+                    console.log('[1/5] ✅ MOC3 loaded, creating model...');
                     this.loadModel(arrayBuffer, this._mocConsistency);
                     this._state = LoadStep.LoadExpression;
 

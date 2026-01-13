@@ -15,7 +15,7 @@ module.exports = {
     resolve: {
         extensions: ['.ts', '.js'],
         alias: {
-            '@framework': path.resolve(__dirname, '../../../Framework/src')
+            '@framework': path.resolve(__dirname, '../Live2D/CubismSdkForWeb/Framework/src')
         }
     },
     module: {

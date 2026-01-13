@@ -9,12 +9,13 @@ module.exports = {
         path: path.resolve(__dirname, 'dist'),
         filename: 'live2d-render.js',
         publicPath: '/dist/',
-        libraryTarget: 'commonjs2'
+        libraryTarget: 'umd',
+        library: 'Live2dRender'
     },
     resolve: {
         extensions: ['.ts', '.js'],
         alias: {
-            '@framework': path.resolve(__dirname, '../../../Framework/src')
+            '@framework': path.resolve(__dirname, '../Live2D/CubismSdkForWeb/Framework/src')
         }
     },
     module: {

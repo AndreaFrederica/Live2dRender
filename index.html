@@ -2,58 +2,437 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=1900">
-  <title>TypeScript HTML App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live2D Render Test</title>
+  <script type="module" src="/src/browser-entry.ts"></script>
   <style>
     html, body {
-        margin: 0;
-        overflow: hidden;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    #controls {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      max-width: 350px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    #controls h2 {
+      margin: 0 0 15px 0;
+      font-size: 18px;
+      color: #333;
+    }
+
+    .upload-area {
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      margin: 15px 0;
+      cursor: pointer;
+      transition: border-color 0.3s, background 0.3s;
+    }
+
+    .upload-area:hover {
+      border-color: #4CAF50;
+      background: #f9f9f9;
+    }
+
+    .upload-area p {
+      margin: 5px 0;
+      color: #666;
+      font-size: 13px;
+    }
+
+    .file-list {
+      margin: 10px 0;
+      font-size: 11px;
+      color: #666;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .file-list-item {
+      padding: 4px 8px;
+      background: #f5f5f5;
+      margin: 2px 0;
+      border-radius: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-list-item.folder {
+      background: #e3f2fd;
+      font-weight: bold;
+      color: #1976d2;
+    }
+
+    .file-list-item.model {
+      background: #e8f5e9;
+      font-weight: bold;
+      color: #2e7d32;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      margin: 8px 0;
+      padding: 10px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.3s;
+    }
+
+    .btn:hover {
+      background: #45a049;
+    }
+
+    .btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: #2196F3;
+    }
+
+    .btn-secondary:hover {
+      background: #0b7dda;
+    }
+
+    .status {
+      margin-top: 15px;
+      padding: 10px;
+      background: #e7f3fe;
+      border-left: 4px solid #2196F3;
+      font-size: 12px;
+      color: #333;
+    }
+
+    .status.error {
+      background: #ffebee;
+      border-left-color: #f44336;
+    }
+
+    .status.success {
+      background: #e8f5e9;
+      border-left-color: #4CAF50;
+    }
+
+    #info {
+      margin-top: 10px;
+      font-size: 11px;
+      color: #666;
+      line-height: 1.5;
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+    }
+
+    #info code {
+      background: #e0e0e0;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-size: 10px;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .toggle-btn {
+      background: none;
+      border: none;
+      color: #2196F3;
+      cursor: pointer;
+      font-size: 12px;
+      padding: 0;
+      text-decoration: underline;
+      margin: 5px 0;
+    }
+
+    .folder-name {
+      font-weight: bold;
+      color: #4CAF50;
+      margin-bottom: 5px;
     }
   </style>
-  <!-- Pollyfill script -->
-  <!-- <script src="https://unpkg.com/core-js-bundle@3.6.1/minified.js" async></script> -->
-  <!-- Live2DCubismCore script -->
-  <!-- <script src = "https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js" async></script> -->
-
-  <!-- <link rel="stylesheet" href="./live2d-render.css"> -->
-
 </head>
 <body>
+  <div id="controls">
+    <h2>Live2D Render Test</h2>
+    <div id="status" class="status">Select a Live2D model folder...</div>
 
-    <div class="expression-item">
-        <span>
-            <svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M624.48 882.4c-2.96 10.64-4.72 18-7.04 25.2-10.08 31.12-25.04 41.6-57.92 41.12-115.28-1.6-230.56-3.52-345.84-4.56-30 0-60 3.04-90 3.76-54.4 1.44-72.8-14.48-73.28-69.28-1.6-177.28-3.12-354.56-2-531.84 0-64 7.2-128 13.6-191.2 2.24-21.92 3.28-54.32 30.32-56 14.48-0.8 37.36 23.52 44.64 41.28 35.76 87.28 99.36 118.32 189.76 106.24a671.52 671.52 0 0 1 84.24-1.68 72.56 72.56 0 0 0 66.88-38.4c17.52-30.16 34.72-60.4 53.04-90.08a86.16 86.16 0 0 1 24-28.48c12-7.44 30-16 40-12.16s18.72 22.88 22.32 36.64 0.88 30.8 0.96 46.32c1.04 180.24 2.48 360.4 2.56 540.64 0 26.32 9.04 40.96 31.36 55.52 70.96 46.4 127.44 38.88 194.08-33.76 9.12-10 16.64-21.6 26.24-30.96a59.68 59.68 0 0 1 79.28-6.4 58.08 58.08 0 0 1 14.48 78.24C913.76 848 790.24 949.04 644.08 888a194.08 194.08 0 0 0-19.6-5.6z m-454.08-488a48 48 0 0 0-45.6 44.32 47.2 47.2 0 0 0 46.64 46.16A44.64 44.64 0 0 0 216 440.64a45.2 45.2 0 0 0-45.6-46.32z m338.16 90.4a45.92 45.92 0 0 0 43.84-45.2 45.28 45.28 0 0 0-46.64-45.04 45.12 45.12 0 0 0 2.8 90.24z" p-id="17483" fill="#202020"></path></svg>
-        </span>
-        <span>
-            hello world
-        </span>
+    <div class="upload-area" id="uploadArea">
+      <p><strong>Click to select folder</strong></p>
+      <p style="font-size: 11px; color: #999;">Folder containing .model3.json and all model files</p>
+      <input type="file" id="folderInput" webkitdirectory directory multiple>
     </div>
-    
+
+    <div id="folderInfo"></div>
+    <div class="file-list" id="fileList"></div>
+
+    <button id="loadBtn" class="btn" disabled>Load Model</button>
+    <button id="clearBtn" class="btn btn-secondary">Clear</button>
+
+    <button class="toggle-btn" id="toggleInfo">Show Instructions ▼</button>
+    <div id="info" style="display: none;">
+      <p><strong>How to use:</strong></p>
+      <ol style="margin: 5px 0; padding-left: 20px;">
+        <li>Click the upload area above</li>
+        <li>Select your Live2D model folder</li>
+        <li>The folder must contain <code>xxx.model3.json</code></li>
+        <li>All files will be automatically loaded</li>
+      </ol>
+      <p style="margin-top: 10px;"><strong>Required files:</strong></p>
+      <ul style="margin: 5px 0; padding-left: 20px; font-size: 10px;">
+        <li><code>xxx.model3.json</code> - Model configuration</li>
+        <li><code>xxx.moc3</code> - Model data</li>
+        <li>Texture files (PNG/JPG)</li>
+        <li>Motion & expression files (optional)</li>
+      </ul>
+    </div>
+  </div>
+
+  <script type="module">
+    const statusDiv = document.getElementById('status');
+    const uploadArea = document.getElementById('uploadArea');
+    const folderInput = document.getElementById('folderInput');
+    const fileList = document.getElementById('fileList');
+    const folderInfo = document.getElementById('folderInfo');
+    const loadBtn = document.getElementById('loadBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const toggleInfo = document.getElementById('toggleInfo');
+    const info = document.getElementById('info');
+
+    let uploadedFiles = [];
+    let folderName = '';
+
+    function updateStatus(message, type = 'info') {
+      statusDiv.textContent = message;
+      statusDiv.className = 'status ' + type;
+    }
+
+    // Upload area click
+    uploadArea.addEventListener('click', () => {
+      folderInput.click();
+    });
+
+    // Folder input change
+    folderInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+
+      // Get folder name from first file
+      const firstFile = files[0];
+      const pathParts = firstFile.webkitRelativePath.split('/');
+      folderName = pathParts[0];
+
+      uploadedFiles = files;
+
+      // Display folder info
+      folderInfo.innerHTML = `<div class="folder-name">📁 ${folderName}</div>`;
+
+      // Build directory tree structure
+      const tree = {};
+      files.forEach(file => {
+        const relativePath = file.webkitRelativePath.substring(folderName.length + 1);
+        const parts = relativePath.split('/');
+        let current = tree;
+
+        parts.forEach((part, index) => {
+          if (!current[part]) {
+            current[part] = index === parts.length - 1 ? null : {};
+          }
+          if (index < parts.length - 1) {
+            current = current[part];
+          }
+        });
+      });
+
+      // Render tree
+      let html = '';
+      const modelJsonCount = files.filter(f => f.name.endsWith('.model3.json')).length;
+      html += `<div class="file-list-item">📊 ${files.length} files (${modelJsonCount} model)</div>`;
+
+      const renderTree = (obj, prefix = '', isLast = true) => {
+        const keys = Object.keys(obj);
+        keys.forEach((key, index) => {
+          const isLastItem = index === keys.length - 1;
+          const connector = isLastItem ? '└── ' : '├── ';
+          const itemClass = obj[key] === null ? 'file-list-item' : 'file-list-item folder';
+          const modelClass = key.endsWith('.model3.json') ? ' model' : '';
+
+          if (obj[key] === null) {
+            // It's a file
+            html += `<div class="${itemClass}${modelClass}">${prefix}${connector}${key}</div>`;
+          } else {
+            // It's a folder
+            html += `<div class="${itemClass}">${prefix}${connector}${key}/</div>`;
+            const newPrefix = prefix + (isLastItem ? '    ' : '│   ');
+            renderTree(obj[key], newPrefix, isLastItem);
+          }
+        });
+      };
+
+      // Limit to first 50 items for performance
+      const displayFiles = files.slice(0, 50);
+      const limitedTree = {};
+      displayFiles.forEach(file => {
+        const relativePath = file.webkitRelativePath.substring(folderName.length + 1);
+        const parts = relativePath.split('/');
+        let current = limitedTree;
+
+        parts.forEach((part, index) => {
+          if (!current[part]) {
+            current[part] = index === parts.length - 1 ? null : {};
+          }
+          if (index < parts.length - 1) {
+            current = current[part];
+          }
+        });
+      });
+
+      renderTree(limitedTree);
+
+      if (files.length > 50) {
+        html += `<div class="file-list-item">... and ${files.length - 50} more files</div>`;
+      }
+
+      fileList.innerHTML = html;
+
+      // Enable load button if we have a model3.json
+      loadBtn.disabled = modelJsonCount === 0;
+
+      if (modelJsonCount === 0) {
+        updateStatus('No .model3.json found in folder!', 'error');
+      } else {
+        updateStatus(`Folder loaded! Found ${modelJsonCount} model file${modelJsonCount > 1 ? 's' : ''}`, 'success');
+      }
+    });
+
+    // Clear button
+    clearBtn.addEventListener('click', () => {
+      uploadedFiles = [];
+      folderName = '';
+      folderInfo.innerHTML = '';
+      fileList.innerHTML = '';
+      loadBtn.disabled = true;
+      folderInput.value = '';
+      updateStatus('Cleared. Select a new folder.', 'info');
+    });
+
+    // Toggle info
+    toggleInfo.addEventListener('click', () => {
+      if (info.style.display === 'none') {
+        info.style.display = 'block';
+        toggleInfo.textContent = 'Hide Instructions ▲';
+      } else {
+        info.style.display = 'none';
+        toggleInfo.textContent = 'Show Instructions ▼';
+      }
+    });
+
+    // Load model
+    loadBtn.addEventListener('click', async () => {
+      if (uploadedFiles.length === 0) {
+        updateStatus('No folder selected!', 'error');
+        return;
+      }
+
+      const modelJsonFile = uploadedFiles.find(f => f.name.endsWith('.model3.json'));
+      if (!modelJsonFile) {
+        updateStatus('No .model3.json found!', 'error');
+        return;
+      }
+
+      updateStatus('Loading Live2D model...', 'info');
+      loadBtn.disabled = true;
+
+      try {
+        // Create blob URLs for all files
+        const fileMap = {};
+        const folderPath = folderName + '/';
+
+        for (const file of uploadedFiles) {
+          const relativePath = file.webkitRelativePath.substring(folderName.length + 1);
+          fileMap[relativePath] = URL.createObjectURL(file);
+        }
+
+        // Get model3.json path
+        const modelJsonPath = modelJsonFile.webkitRelativePath.substring(folderName.length + 1);
+
+        // Override fetch to use our blob URLs
+        const originalFetch = window.fetch;
+        window.fetch = async (url) => {
+          const urlPath = url.replace(/^\/+/, '');
+          console.log('[Fetch Debug] Requesting:', urlPath);
+          console.log('[Fetch Debug] Available files:', Object.keys(fileMap));
+
+          // Try to match the URL to our files
+          for (const [relativePath, blobUrl] of Object.entries(fileMap)) {
+            if (urlPath === relativePath || url.endsWith(relativePath)) {
+              console.log('[Fetch Debug] ✅ Matched:', relativePath, '->', blobUrl);
+              return originalFetch(blobUrl);
+            }
+          }
+
+          // If no match, try original fetch
+          console.log('[Fetch Debug] ❌ No match found for:', urlPath);
+          return originalFetch(url);
+        };
+
+        // Load the model
+        // ResourcesPath 必须是完整的 .model3.json 文件路径
+        await window.Live2dRender.initializeLive2D({
+          BackgroundRGBA: [0.0, 0.0, 0.0, 0.0],
+          ResourcesPath: '/' + folderPath + modelJsonPath,
+          CanvasSize: {
+            height: 600,
+            width: 400
+          },
+          CanvasPosition: 'right',
+          ShowToolBox: true,
+          LoadFromCache: false
+        });
+
+        updateStatus('Live2D model loaded successfully! ✅', 'success');
+
+        // Restore fetch after a delay
+        setTimeout(() => {
+          window.fetch = originalFetch;
+        }, 5000);
+
+      } catch (err) {
+        updateStatus('Error: ' + err.message, 'error');
+        console.error('Failed to load Live2D:', err);
+        loadBtn.disabled = false;
+      }
+    });
+
+    // Wait for module to load
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        updateStatus('Ready! Click to select a Live2D model folder.', 'info');
+      }, 500);
+    });
+  </script>
 </body>
-
-<script>
-</script>
-
-<style>
-body {
-    background-attachment: fixed;
-    background-repeat: no-repeat;
-    background-size: cover;
-    -webkit-background-size: cover;
-    -o-background-size: cover;
-    background-position: center 0;
-}
-
-.expression-item {
-    display: flex;
-    align-items: center;
-    width: fit-content;
-}
-
-.expression-item svg {
-    height: 20px;
-    margin-right: 10px;
-}
-
-</style>
 </html>
