@@ -1,6 +1,6 @@
 import { getRuntimeConfig, setRuntimeConfig, type CanvasPosition, type CanvasSize } from './config';
 import { initialiseIndexDB } from './db';
-import { CacheFetchSetting, installFetchCache, uninstallFetchCache } from './cache';
+import { CacheFetchSetting } from './cache';
 import { addToolBox, reloadToolBox, setToolBoxHost, type ToolBoxHost } from './toolbox';
 import { isVoiceEnabled, setVoiceEnabled, unlockVoice } from './voice';
 
@@ -184,14 +184,17 @@ function applySdkPatches(loaded: Sdk) {
     modelProto.__live2dRenderPatched = true;
     const originalStartMotion = modelProto.startMotion;
     modelProto.startMotion = function (group: string, no: number, priority: number) {
-      const ret = originalStartMotion?.apply(this, arguments as any);
+      import('./voice').then(({ stopVoice }) => stopVoice());
+      const ret = originalStartMotion?.apply(this, [group, no, 3]);
       try {
-        const voice = this._modelSetting?.getMotionSoundFileName?.(group, no);
-        if (voice && String(voice).length && isVoiceEnabled()) {
-          void unlockVoice().then(() => {
-            const url = `${this._modelHomeDir}${voice}`;
-            import('./voice').then(({ playVoiceFromUrl }) => playVoiceFromUrl(url));
-          });
+        if (ret !== -1) {
+          const voice = this._modelSetting?.getMotionSoundFileName?.(group, no);
+          if (voice && String(voice).length && isVoiceEnabled()) {
+            void unlockVoice().then(() => {
+              const url = `${this._modelHomeDir}${voice}`;
+              import('./voice').then(({ playVoiceFromUrl }) => playVoiceFromUrl(url));
+            });
+          }
         }
       } catch { }
       return ret;
@@ -247,11 +250,8 @@ function buildToolBoxHost(): ToolBoxHost {
       const map = model?._expressions;
       const size = typeof map?.getSize === 'function' ? map.getSize() : 0;
       const items: Array<{ first: string; second: any }> = Array.isArray(map?._keyValues) ? map._keyValues : [];
-      const rectH = getRuntimeConfig().Canvas?.getBoundingClientRect().height ?? 0;
-      const max = Math.max(0, Math.floor((rectH / 35) - 1));
-      const limit = Math.min(size, max);
       const out: Array<{ name: string; label: string }> = [];
-      for (let i = 0; i < limit; i++) {
+      for (let i = 0; i < size; i++) {
         const p = items[i];
         if (!p || typeof p.first !== 'string') continue;
         if (!p.second) continue;
@@ -265,6 +265,34 @@ function buildToolBoxHost(): ToolBoxHost {
       const mgr = (subdelegate as any)?._live2dManager;
       const model = mgr?._models?.getSize?.() ? mgr._models.at(0) : null;
       model?.setExpression?.(name);
+    },
+    getMotions: () => {
+      const mgr = (subdelegate as any)?._live2dManager;
+      const model = mgr?._models?.getSize?.() ? mgr._models.at(0) : null;
+      const setting = model?._modelSetting;
+      if (!model || !setting) return [];
+
+      const out: Array<{ group: string; index: number; label: string }> = [];
+      try {
+        const groupCount = typeof setting.getMotionGroupCount === 'function' ? setting.getMotionGroupCount() : 0;
+        for (let gi = 0; gi < groupCount; gi++) {
+          const group = setting.getMotionGroupName(gi);
+          if (!group) continue;
+          const count = typeof setting.getMotionCount === 'function' ? setting.getMotionCount(group) : 0;
+          for (let mi = 0; mi < count; mi++) {
+            const file = setting.getMotionFileName(group, mi);
+            const base = String(file ?? '').split('/').pop() ?? '';
+            const label = base.replace('.motion3.json', '').replace('.json', '') || `${group}#${mi}`;
+            out.push({ group, index: mi, label });
+          }
+        }
+      } catch { }
+      return out;
+    },
+    playMotion: async (group: string, index: number) => {
+      const mgr = (subdelegate as any)?._live2dManager;
+      const model = mgr?._models?.getSize?.() ? mgr._models.at(0) : null;
+      model?.startMotion?.(group, index, 2);
     },
     reloadModel: async () => {
       const mgr = (subdelegate as any)?._live2dManager;
@@ -330,9 +358,7 @@ export async function initializeLive2D(config: Live2dRenderConfig) {
     const store = config.Live2dDBStore ?? 'live2d';
     const db = await initialiseIndexDB(dbName, 1, store);
     setRuntimeConfig({ Live2dDB: db });
-    installFetchCache();
   } else {
-    uninstallFetchCache();
     setRuntimeConfig({ Live2dDB: null });
   }
 
@@ -400,7 +426,6 @@ export function destroyLive2D() {
   eventsInstalled = false;
   setToolBoxHost(null);
   setVoiceEnabled(false);
-  uninstallFetchCache();
   setRuntimeConfig({ Live2dDB: null });
   cubismInitialized = false;
   cubismCoreLoading = null;

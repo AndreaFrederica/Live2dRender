@@ -4,12 +4,15 @@ import * as svgIcon from './svg';
 import { isVoiceEnabled, setVoiceEnabled, unlockVoice } from './voice';
 
 type ExpressionEntry = { name: string; label: string };
+type MotionEntry = { group: string; index: number; label: string };
 
 export type ToolBoxHost = {
   getCanvas: () => HTMLCanvasElement | null;
   getCanvasPosition: () => 'left' | 'right';
   getExpressions: () => ExpressionEntry[];
   setExpression: (name: string) => void;
+  getMotions: () => MotionEntry[];
+  playMotion: (group: string, index: number) => void | Promise<void>;
   reloadModel: () => void | Promise<void>;
   setRefreshCache: (refresh: boolean) => void;
 };
@@ -26,7 +29,6 @@ const defaultIconFgColor = 'white';
 const defaultHoverColor = 'rgb(224, 209, 41)';
 
 let container: HTMLDivElement | undefined;
-let containerTimer: ReturnType<typeof setTimeout> | undefined;
 let collapse = false;
 let widthXoffset = 35;
 const live2dBoxItemCss = '__live2d-toolbox-item';
@@ -96,18 +98,12 @@ function addCssClass() {
 
 function showContainer() {
   if (!container) return;
-  if (containerTimer) clearTimeout(containerTimer);
-  containerTimer = setTimeout(() => {
-    if (container) container.style.opacity = '1';
-  }, 200);
+  container.style.opacity = '1';
 }
 
 function hideContainer() {
   if (!container || collapse) return;
-  if (containerTimer) clearTimeout(containerTimer);
-  containerTimer = setTimeout(() => {
-    if (container) container.style.opacity = '0';
-  }, 200);
+  container.style.opacity = '0';
 }
 
 function createCommonIcon(svgString: string, extraString = '', cssClasses: string[] = []) {
@@ -159,7 +155,7 @@ function makeLive2dCollapseIcon(containerEl: HTMLDivElement) {
     if (xoffset > 0) {
       collapse = true;
       icon.style.transform = 'rotate(180deg)';
-      setTimeout(() => showContainer(), 500);
+      showContainer();
     } else {
       collapse = false;
       icon.style.transform = 'rotate(0)';
@@ -199,7 +195,7 @@ function makeExpressionListCollapseIcon() {
   iconsWrapper.style.opacity = '0';
 
   let currentTranslateY = 0;
-  const translateX = (host?.getCanvasPosition() ?? getRuntimeConfig().CanvasPosition) === 'left' ? '75px' : '-75px';
+  const translateX = (host?.getCanvasPosition() ?? getRuntimeConfig().CanvasPosition) === 'right' ? '75px' : '-75px';
   iconsWrapper.style.transform = `translate(${translateX}, ${currentTranslateY - 50}px)`;
 
   const refreshIcons = () => {
@@ -219,9 +215,7 @@ function makeExpressionListCollapseIcon() {
     icon.style.backgroundColor = defaultIconBgColor;
     iconsWrapper.style.opacity = '0';
     iconsWrapper.style.transform = `translate(${translateX}, ${currentTranslateY - 50}px)`;
-    setTimeout(() => {
-      iconsWrapper.style.visibility = 'hidden';
-    }, 500);
+    iconsWrapper.style.visibility = 'hidden';
   });
 
   iconsWrapper.addEventListener('wheel', (e) => {
@@ -230,7 +224,7 @@ function makeExpressionListCollapseIcon() {
     let translateY = matrix.m42;
     translateY += e.deltaY > 0 ? -50 : 50;
     currentTranslateY = translateY;
-    const tx = (host?.getCanvasPosition() ?? getRuntimeConfig().CanvasPosition) === 'left' ? '75px' : '-75px';
+    const tx = (host?.getCanvasPosition() ?? getRuntimeConfig().CanvasPosition) === 'right' ? '75px' : '-75px';
     iconsWrapper.style.transform = `translate(${tx}, ${translateY}px)`;
     e.preventDefault();
   });
@@ -303,6 +297,73 @@ function makeVoiceIcon() {
   return icon;
 }
 
+function makeMotionListCollapseIcon() {
+  const icon = createCommonIcon(svgIcon.motionIcon, '', ['button-item']);
+  icon.style.backgroundColor = defaultIconBgColor;
+  icon.style.fontSize = '1.05rem';
+  icon.style.position = 'relative';
+
+  const iconsWrapper = document.createElement('div');
+  iconsWrapper.style.position = 'absolute';
+  iconsWrapper.style.top = '0px';
+  iconsWrapper.style.flexDirection = 'column';
+  iconsWrapper.style.transition = 'all .75s cubic-bezier(0.23, 1, 0.32, 1)';
+  iconsWrapper.style.display = 'flex';
+  iconsWrapper.style.opacity = '0';
+  iconsWrapper.style.visibility = 'hidden';
+
+  let currentTranslateY = 0;
+  const translateX = (host?.getCanvasPosition() ?? getRuntimeConfig().CanvasPosition) === 'right' ? '75px' : '-75px';
+  iconsWrapper.style.transform = `translate(${translateX}, ${currentTranslateY - 50}px)`;
+
+  icon.addEventListener('mouseenter', () => {
+    icon.style.backgroundColor = defaultHoverColor;
+  });
+  icon.addEventListener('mouseleave', () => {
+    icon.style.backgroundColor = defaultIconBgColor;
+  });
+
+  const refreshIcons = () => {
+    while (iconsWrapper.firstChild) iconsWrapper.removeChild(iconsWrapper.firstChild);
+    const motions = host?.getMotions() ?? [];
+    for (const m of motions) {
+      if (!m) continue;
+      const label = `${m.group}: ${m.label}`;
+      const el = createCommonIcon(svgIcon.motionIcon, label);
+      el.classList.add('expression-item');
+      el.onclick = async () => host?.playMotion(m.group, m.index);
+      iconsWrapper.appendChild(el);
+    }
+  };
+
+  icon.addEventListener('mouseenter', () => {
+    refreshIcons();
+    iconsWrapper.style.visibility = 'visible';
+    iconsWrapper.style.opacity = '1';
+    iconsWrapper.style.transform = `translate(${translateX}, ${currentTranslateY}px)`;
+  });
+
+  icon.addEventListener('mouseleave', () => {
+    iconsWrapper.style.opacity = '0';
+    iconsWrapper.style.transform = `translate(${translateX}, ${currentTranslateY - 50}px)`;
+    iconsWrapper.style.visibility = 'hidden';
+  });
+
+  iconsWrapper.addEventListener('wheel', (e) => {
+    const currentTransform = getComputedStyle(iconsWrapper).transform;
+    const matrix = new WebKitCSSMatrix(currentTransform);
+    let translateY = matrix.m42;
+    translateY += e.deltaY > 0 ? -50 : 50;
+    currentTranslateY = translateY;
+    const tx = (host?.getCanvasPosition() ?? getRuntimeConfig().CanvasPosition) === 'right' ? '75px' : '-75px';
+    iconsWrapper.style.transform = `translate(${tx}, ${translateY}px)`;
+    e.preventDefault();
+  });
+
+  icon.appendChild(iconsWrapper);
+  return icon;
+}
+
 function makeBoxItemContainer() {
   const containerEl = document.createElement('div');
   containerEl.style.display = 'flex';
@@ -331,6 +392,7 @@ function makeBoxItemContainer() {
   containerEl.appendChild(makeLive2dCollapseIcon(containerEl));
   containerEl.appendChild(makeExpressionListCollapseIcon());
   containerEl.appendChild(makeRefreshCacheIcon());
+  containerEl.appendChild(makeMotionListCollapseIcon());
   containerEl.appendChild(makeVoiceIcon());
   containerEl.appendChild(makeStarIcon());
 

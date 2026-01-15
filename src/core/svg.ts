@@ -18,6 +18,10 @@ export const starIcon = `
 <svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M960 384l-313.6-40.96L512 64 377.6 343.04 64 384l230.4 208.64L234.88 896 512 746.88 789.12 896l-59.52-303.36L960 384z" p-id="10992" fill="#202020"></path></svg>
 `;
 
+export const motionIcon = `
+<svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M384 256v512l384-256-384-256z" fill="#202020"></path></svg>
+`;
+
 export const volumeOnIcon = `
 <svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M128 384v256h192l256 256V128L320 384H128z" fill="#202020"></path><path d="M704 320c58.88 58.88 58.88 154.12 0 213l-45.25-45.25c33.88-33.88 33.88-88.62 0-122.5L704 320z" fill="#202020"></path><path d="M800 224c111.75 111.75 111.75 292.25 0 404l-45.25-45.25c86.75-86.75 86.75-226.75 0-313.5L800 224z" fill="#202020"></path></svg>
 `;

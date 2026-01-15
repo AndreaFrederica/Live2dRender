@@ -47,54 +47,11 @@ export async function cacheFetch(url: string): Promise<FakeResponse> {
 }
 
 let installed = false;
-let originalFetch: typeof fetch | null = null;
 
 export function installFetchCache() {
-  if (installed) return;
-  if (typeof window === 'undefined') return;
-  if (typeof fetch !== 'function') return;
-
   installed = true;
-  originalFetch = fetch.bind(window);
-
-  window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-    const { LoadFromCache, Live2dDB } = getRuntimeConfig();
-    if (!LoadFromCache || !Live2dDB) {
-      return originalFetch(input as any, init);
-    }
-
-    const method = (init?.method ?? (typeof input === 'object' && 'method' in input ? (input as Request).method : 'GET')).toUpperCase();
-    if (method !== 'GET') {
-      return originalFetch(input as any, init);
-    }
-
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
-
-    if (!CacheFetchSetting.refreshCache) {
-      const cached = await selectItemIndexDB<UrlDBItem>('url', url);
-      if (cached) {
-        return new Response(cached.arraybuffer.slice(0), { status: 200 });
-      }
-    }
-
-    const resp = await originalFetch(input as any, init);
-    try {
-      if (resp.ok) {
-        const cloned = resp.clone();
-        const buf = await cloned.arrayBuffer();
-        createItemIndexDB<UrlDBItem>({ url, arraybuffer: buf });
-      }
-    } catch {}
-    return resp;
-  }) as any;
 }
 
 export function uninstallFetchCache() {
-  if (!installed) return;
-  if (typeof window === 'undefined') return;
-  if (originalFetch) {
-    window.fetch = originalFetch as any;
-  }
   installed = false;
-  originalFetch = null;
 }
