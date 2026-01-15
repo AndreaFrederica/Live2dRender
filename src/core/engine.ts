@@ -142,6 +142,15 @@ function applySdkPatches(loaded: Sdk) {
       const instance = new loaded.LAppModel();
       instance.setSubdelegate?.(this._subdelegate);
       instance.loadAssets?.(dir, fileName);
+
+      // Enable multiply and screen color overrides to support Live2D Editor color settings
+      // This is required for models using "multiply" or "screen" blending modes
+      const model = instance.getModel?.();
+      if (model) {
+        model.setOverrideFlagForModelMultiplyColors?.(true);
+        model.setOverrideFlagForModelScreenColors?.(true);
+      }
+
       this._models?.pushBack?.(instance);
       return true;
     };
@@ -170,7 +179,18 @@ function applySdkPatches(loaded: Sdk) {
       if (!gl) return originalUpdate?.call(this);
       const originalClearColor = gl.clearColor?.bind(gl);
       const bg = getRuntimeConfig().BackgroundRGBA;
-      gl.clearColor = ((r: number, g: number, b: number, a: number) => originalClearColor(bg[0], bg[1], bg[2], bg[3])) as any;
+
+      gl.clearColor = ((r: number, g: number, b: number, a: number) => {
+        // Only override clear color for default framebuffer (screen)
+        // Live2D uses offscreen framebuffers for masking (clipping), which must not be overridden
+        const binding = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+        if (!binding) {
+          originalClearColor(bg[0], bg[1], bg[2], bg[3]);
+        } else {
+          originalClearColor(r, g, b, a);
+        }
+      }) as any;
+
       try {
         return originalUpdate?.call(this);
       } finally {
