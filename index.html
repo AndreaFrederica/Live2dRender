@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Live2D Render Test</title>
-  <script type="module" src="/src/browser-entry.ts"></script>
+  <script type="module" src="/src/main.ts"></script>
   <style>
-    html, body {
+    html,
+    body {
       margin: 0;
       padding: 0;
       width: 100%;
@@ -19,11 +21,11 @@
       position: fixed;
       top: 20px;
       left: 20px;
-      z-index: 1000;
+      z-index: 20000;
       background: rgba(255, 255, 255, 0.95);
       padding: 20px;
       border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       max-width: 350px;
       max-height: 90vh;
       overflow-y: auto;
@@ -175,6 +177,7 @@
     }
   </style>
 </head>
+
 <body>
   <div id="controls">
     <h2>Live2D Render Test</h2>
@@ -224,6 +227,11 @@
 
     let uploadedFiles = [];
     let folderName = '';
+    let fileMap = {};
+    let demoFetchInstalled = false;
+    let originalFetch = null;
+    let imageSrcDesc = null;
+    let originalImageSrcSetter = null;
 
     function updateStatus(message, type = 'info') {
       statusDiv.textContent = message;
@@ -332,10 +340,14 @@
     clearBtn.addEventListener('click', () => {
       uploadedFiles = [];
       folderName = '';
+      fileMap = {};
       folderInfo.innerHTML = '';
       fileList.innerHTML = '';
       loadBtn.disabled = true;
       folderInput.value = '';
+      try {
+        window.Live2dRender?.destroyLive2D?.();
+      } catch { }
       updateStatus('Cleared. Select a new folder.', 'info');
     });
 
@@ -368,7 +380,7 @@
 
       try {
         // Create blob URLs for all files
-        const fileMap = {};
+        fileMap = {};
         const folderPath = folderName + '/';
 
         for (const file of uploadedFiles) {
@@ -379,28 +391,55 @@
         // Get model3.json path
         const modelJsonPath = modelJsonFile.webkitRelativePath.substring(folderName.length + 1);
 
-        // Override fetch to use our blob URLs
-        const originalFetch = window.fetch;
-        window.fetch = async (url) => {
-          const urlPath = url.replace(/^\/+/, '');
-          console.log('[Fetch Debug] Requesting:', urlPath);
-          console.log('[Fetch Debug] Available files:', Object.keys(fileMap));
+        if (!demoFetchInstalled) {
+          demoFetchInstalled = true;
+          originalFetch = window.fetch;
+          imageSrcDesc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+          originalImageSrcSetter = imageSrcDesc?.set;
 
-          // Try to match the URL to our files
-          for (const [relativePath, blobUrl] of Object.entries(fileMap)) {
-            if (urlPath === relativePath || url.endsWith(relativePath)) {
-              console.log('[Fetch Debug] ✅ Matched:', relativePath, '->', blobUrl);
-              return originalFetch(blobUrl);
+          const resolveBlobUrl = (url) => {
+            const urlStr = String(url);
+            const urlPath = urlStr.replace(/^\/+/, '');
+            for (const [relativePath, blobUrl] of Object.entries(fileMap)) {
+              if (urlPath === relativePath || urlStr.endsWith(relativePath)) {
+                return { relativePath, blobUrl, urlPath };
+              }
             }
-          }
+            return null;
+          };
 
-          // If no match, try original fetch
-          console.log('[Fetch Debug] ❌ No match found for:', urlPath);
-          return originalFetch(url);
-        };
+          window.fetch = async (url, init) => {
+            const resolved = resolveBlobUrl(url);
+            if (resolved) {
+              console.log('[Fetch Debug] ✅ Matched:', resolved.relativePath, '->', resolved.blobUrl);
+              return originalFetch(resolved.blobUrl, init);
+            }
+            console.log('[Fetch Debug] ❌ No match found for:', String(url).replace(/^\/+/, ''));
+            return originalFetch(url, init);
+          };
+
+          if (originalImageSrcSetter) {
+            Object.defineProperty(HTMLImageElement.prototype, 'src', {
+              configurable: true,
+              enumerable: true,
+              get: imageSrcDesc.get,
+              set(value) {
+                const resolved = resolveBlobUrl(value);
+                if (resolved) {
+                  return originalImageSrcSetter.call(this, resolved.blobUrl);
+                }
+                return originalImageSrcSetter.call(this, value);
+              },
+            });
+          }
+        }
 
         // Load the model
         // ResourcesPath 必须是完整的 .model3.json 文件路径
+        try {
+          window.Live2dRender?.setVoiceEnabled?.(true);
+          await window.Live2dRender?.unlockVoice?.();
+        } catch { }
         await window.Live2dRender.initializeLive2D({
           BackgroundRGBA: [0.0, 0.0, 0.0, 0.0],
           ResourcesPath: '/' + folderPath + modelJsonPath,
@@ -410,15 +449,11 @@
           },
           CanvasPosition: 'right',
           ShowToolBox: true,
+          EnableVoice: true,
           LoadFromCache: false
         });
 
         updateStatus('Live2D model loaded successfully! ✅', 'success');
-
-        // Restore fetch after a delay
-        setTimeout(() => {
-          window.fetch = originalFetch;
-        }, 5000);
 
       } catch (err) {
         updateStatus('Error: ' + err.message, 'error');
@@ -435,4 +470,5 @@
     });
   </script>
 </body>
+
 </html>

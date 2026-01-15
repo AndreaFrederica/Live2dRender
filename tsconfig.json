@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
         "target": "es6",
+        "module": "es2020",
         "moduleResolution": "node",
         "esModuleInterop": true,
         "experimentalDecorators": true,
@@ -14,6 +15,7 @@
                 "../Live2D/CubismSdkForWeb/Framework/src/*"
             ]
         },
+        "skipLibCheck": true,
         "noImplicitAny": true,
         "useUnknownInCatchVariables": true,
         "allowJs": true

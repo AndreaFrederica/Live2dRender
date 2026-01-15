@@ -17,7 +17,7 @@ export default defineConfig({
         }
       }
     },
-    target: 'es5',
+    target: 'es2018',
     minify: 'terser',
     sourcemap: false
   },
